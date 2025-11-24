@@ -1,0 +1,10 @@
+# Google Gemini API Keys
+# Add one API key per line
+# Copy this file to 'api_keys.txt' and add your actual keys
+
+AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+AIzaSyYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+AIzaSyZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ
+
+# You can add up to 20 keys for automatic rotation
+# The system will automatically switch keys when quota is exceeded

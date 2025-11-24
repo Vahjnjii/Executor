@@ -63,28 +63,38 @@ KAGGLE_INPUT_DIR = "/kaggle/input"
 # ============================================================================
 # GOOGLE GEMINI TTS API KEYS
 # ============================================================================
-GOOGLE_GEMINI_API_KEYS = [
-    "AIzaSyCx8qV1wm4YjQv9vHnhD1x2B3c4E5f6G7h",
-    "AIzaSyD9xW2vN5mK6pQ8oR7tY4uI3oP1aS2dF3g",
-    "AIzaSyE5mK8pL2nM3oQ9rS6tU7vI4wP2bT3eG4h",
-    "AIzaSyF2nL9qM4oP5rT8uW9xJ6kQ3sR5cU7vH8i",
-    "AIzaSyG8oM3rN6pQ9sU2vX5yK8lS4tW7dV9xI0j",
-    "AIzaSyH4pN9sM8qR3tW6vY9zL2mU5sX8eW0yJ1k",
-    "AIzaSyI9qO5tN2rU7vY0zM5nW8sV3uX9fZ1yK2l",
-    "AIzaSyJ2rP8uO5sW9vZ3nA8oX1tY6uW0gB3zL4m",
-    "AIzaSyK5sQ2vP8uX3wA6oB1pY9uZ4vX1hC5nM6o",
-    "AIzaSyL8tR5wQ2vY6xB9pC4qZ3wA7vY2iD8oN7p",
-    "AIzaSyM2uS8xR5wZ9yC3qD7rA6xB0wZ3jE2pO8q",
-    "AIzaSyN5vT2yS8xA3zD6rE0sB9yC4xA5kF5qP9r",
-    "AIzaSyO8wU5zT2yB6AD9sF3tC2zD7yB8lG8rQ0s",
-    "AIzaSyP2xV8AU5zC9BE3tG6uD5AC0zC2mH2sR1t",
-    "AIzaSyQ5yW2BV8AD3CF6uH9vE8BD4AD5nI5tS2u",
-    "AIzaSyR8zX5CW2BE6DG9vI2wF2CE7BE8oJ8uT3v",
-    "AIzaSyS2AY8DX5CF9EH3wJ5xG5DF0CF2pK2vU4w",
-    "AIzaSyT5BY2EY8DG3FI6xK8yH8EG4DG5qL5wV5x",
-    "AIzaSyU8CZ5FZ2EH6GJ9yL2zI2FH7EH8rM8xW6y",
-    "AIzaSyV2DA8GA5FI9HK3zM5AJ5GI0FI2sN2yX7z"
-]
+def load_api_keys_from_file():
+    """Load API keys from api_keys.txt file"""
+    api_keys_file = os.path.join(BASE_DIR, "api_keys.txt")
+
+    if not os.path.exists(api_keys_file):
+        print(f"⚠️  Warning: {api_keys_file} not found!")
+        print("   Please create 'api_keys.txt' with your Google Gemini API keys (one per line)")
+        print("   You can copy 'api_keys.example.txt' as a template")
+        return []
+
+    try:
+        with open(api_keys_file, 'r') as f:
+            # Read lines, strip whitespace, ignore empty lines and comments
+            keys = [
+                line.strip()
+                for line in f.readlines()
+                if line.strip() and not line.strip().startswith('#')
+            ]
+
+        if not keys:
+            print("⚠️  Warning: No API keys found in api_keys.txt")
+            return []
+
+        print(f"✅ Loaded {len(keys)} API keys from api_keys.txt")
+        return keys
+
+    except Exception as e:
+        print(f"❌ Error loading API keys: {e}")
+        return []
+
+# Load API keys from file
+GOOGLE_GEMINI_API_KEYS = load_api_keys_from_file()
 
 # TTS Model settings
 TTS_MODEL = "gemini-2.5-flash-preview-tts"
