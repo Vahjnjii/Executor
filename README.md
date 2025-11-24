@@ -1,97 +1,122 @@
-# 🎬 Modular Video Generation System
+# 🎬 Video Generation System with Telegram Bot
 
-**Generate professional videos with AI voiceover, auto-subtitles, and beautiful composition!**
-
-This repository contains a complete, modular video generation system extracted from the original notebook. Each component can be used independently or combined for full video production.
-
-## ✨ Features
-
-- 🎤 **AI Voiceover** - Google Gemini TTS with 5 voices
-- 📝 **Auto Subtitles** - OpenAI Whisper transcription
-- 🎬 **Video Composition** - Professional editing with titles, music, effects
-- 📐 **Multiple Formats** - 9:16, 4:5, 16:9, 1:1 aspect ratios
-- 🎨 **Quality Options** - 1080p or 720p output
-- 🔄 **API Rotation** - Automatic key rotation (20 keys)
-- 🌍 **Multi-language** - Supports multiple languages and scripts
-- ⚡ **Batch Processing** - Generate multiple videos at once
-- 📦 **Modular Design** - Use any component independently
+Complete video generation system with AI voiceover, subtitles, and Telegram bot integration.
 
 ## 🚀 Quick Start
 
+### 1. Install Dependencies
+
 ```bash
-# Install dependencies
 pip install -r requirements.txt
-
-# Run interactive mode
-python main.py
-
-# Or generate directly
-python generate_video.py "Your amazing video script here!"
 ```
 
-📖 **[Read the Quick Start Guide →](QUICKSTART.md)**
+### 2. Configure API Keys
 
-## 📦 Modules
+Create `api_keys.txt` with your Google Gemini API keys (one per line):
 
-| Module | Purpose | Standalone |
-|--------|---------|------------|
-| **voiceover_generator.py** | Generate TTS voiceovers | ✅ Yes |
-| **subtitle_processor.py** | Create subtitles from audio | ✅ Yes |
-| **video_composer.py** | Compose final videos | ✅ Yes |
-| **dataset_manager.py** | Manage video/music files | ✅ Yes |
-| **generate_video.py** | Complete video generation | ✅ Yes |
-| **api_manager.py** | API key rotation | Library |
-| **config.py** | Configuration settings | Library |
-
-## 💡 Usage Examples
-
-### Generate Complete Video
-
-```python
-from generate_video import generate_complete_video
-
-result = generate_complete_video(
-    script_text="Hello! Welcome to my channel.",
-    voice_name="Puck",
-    title="My First Video",
-    aspect_ratio="9:16",
-    quality="High Quality"
-)
-
-print(f"Video: {result['video_path']}")
+```
+AIzaSyYourKey1
+AIzaSyYourKey2
+AIzaSyYourKey3
 ```
 
-### Just Voiceover
-
-```python
-from voiceover_generator import generate_tts_audio
-
-audio_path, status = generate_tts_audio(
-    "Hello world!",
-    voice_name="Charon"
-)
-```
-
-### Just Subtitles
-
-```python
-from subtitle_processor import process_voiceover_to_subtitles, split_text_into_lines
-
-words = process_voiceover_to_subtitles("audio.wav")
-subtitles = split_text_into_lines(words)
-```
-
-### Batch Generation
+### 3. Start Telegram Bot
 
 ```bash
-python generate_video.py "Script 1 --- Script 2 --- Script 3"
+python telegram_bot.py
 ```
 
-## 📚 Documentation
+### 4. Use Bot Commands
 
-- 📖 **[Quick Start Guide](QUICKSTART.md)** - Get started in 5 minutes
-- 📘 **[Full Documentation](README_MODULES.md)** - Complete module reference
-- ⚙️ **[Configuration](config.py)** - Customize settings
+Open Telegram and send to your bot:
+
+```
+/start                           - Show help
+/voiceover Your text here        - Generate voiceover
+/voiceover A --- B --- C         - Batch voiceovers
+/subtitle                        - Reply to audio file
+/video Your script               - Generate complete video
+/video Script1 --- Script2       - Batch videos
+```
+
+## 📦 Files
+
+| File | Purpose |
+|------|---------|
+| `telegram_bot.py` | Main Telegram bot |
+| `workflow_manager.py` | Pipeline control |
+| `voiceover_generator.py` | TTS generation |
+| `subtitle_processor.py` | Subtitle creation |
+| `video_composer.py` | Video composition |
+| `generate_video.py` | Complete pipeline |
+| `dataset_manager.py` | File management |
+| `api_manager.py` | API key rotation |
+| `config.py` | Configuration |
+| `requirements.txt` | Dependencies |
+
+## 🎯 How It Works
+
+### Standalone Mode
+```
+/voiceover text  → Audio file sent to Telegram ✅
+/subtitle        → SRT file sent to Telegram ✅
+```
+
+### Pipeline Mode
+```
+/video script    → Voiceover → Subtitles → Video → Sent to Telegram ✅
+```
+
+### Batch Mode
+```
+/voiceover A --- B --- C    → 3 audio files sent ✅
+/video X --- Y              → 2 videos sent ✅
+```
+
+## ⚙️ Configuration
+
+Edit `config.py` to change:
+
+```python
+DEFAULT_VOICE = "Puck"              # Puck, Charon, Kore, Fenrir, Aoede
+DEFAULT_ASPECT_RATIO = "9:16"       # 9:16, 4:5, 16:9, 1:1
+DEFAULT_QUALITY = "High Quality"    # High Quality, Standard Quality
+TELEGRAM_BOT_TOKEN = "your_token"   # Your bot token
+```
+
+## 🔒 Security
+
+- `api_keys.txt` - Protected by .gitignore (NEVER commit)
+- `telegram_token.txt` - Protected by .gitignore (optional)
+
+## 💻 Command Line Usage
+
+```bash
+# Voiceover only
+python voiceover_generator.py "Your text"
+
+# Complete video
+python generate_video.py "Your script"
+
+# With options
+python generate_video.py "Script" --voice Charon --aspect 16:9
+```
+
+## 🐍 Python Usage
+
+```python
+# Generate voiceover
+from voiceover_generator import generate_tts_audio
+audio_path, status = generate_tts_audio("Hello world!", "Puck")
+
+# Generate complete video
+from generate_video import generate_complete_video
+result = generate_complete_video(
+    script_text="Your script",
+    voice_name="Puck",
+    aspect_ratio="9:16"
+)
+```
 
 ## 🎤 Available Voices
 
@@ -103,69 +128,28 @@ python generate_video.py "Script 1 --- Script 2 --- Script 3"
 
 ## 📐 Aspect Ratios
 
-- **9:16** - Vertical (TikTok, Instagram Reels, YouTube Shorts)
-- **4:5** - Portrait (Instagram Feed)
-- **16:9** - Horizontal (YouTube, TV)
-- **1:1** - Square (Instagram, Facebook)
+- 9:16 - Vertical (TikTok, Reels, Shorts)
+- 4:5 - Portrait (Instagram)
+- 16:9 - Horizontal (YouTube)
+- 1:1 - Square (Instagram, Facebook)
 
-## 🎨 Quality Presets
+## 🆘 Troubleshooting
 
-- **High Quality** - 1080p resolution
-- **Standard Quality** - 720p resolution
-
-## 🔧 Configuration
-
-Edit `config.py` to customize:
-
-```python
-# Add your API keys
-GOOGLE_GEMINI_API_KEYS = [
-    "YOUR_API_KEY_1",
-    "YOUR_API_KEY_2",
-    # Up to 20 keys
-]
-
-# Change defaults
-DEFAULT_VOICE = "Puck"
-DEFAULT_QUALITY = "High Quality"
-DEFAULT_ASPECT_RATIO = "9:16"
+### Bot not responding
+```bash
+# Check if bot is running
+python telegram_bot.py
 ```
 
-## 📁 Project Structure
+### API quota exceeded
+System automatically rotates through your API keys. Add more keys to `api_keys.txt`.
 
-```
-.
-├── config.py                  # Settings and configuration
-├── api_manager.py             # API key management
-├── voiceover_generator.py     # 🎤 TTS generation
-├── subtitle_processor.py      # 📝 Subtitle creation
-├── video_composer.py          # 🎬 Video composition
-├── dataset_manager.py         # 📁 File management
-├── generate_video.py          # 🎯 Complete generation
-├── main.py                    # Interactive interface
-├── requirements.txt           # Dependencies
-├── QUICKSTART.md              # Quick start guide
-└── README_MODULES.md          # Full documentation
+### Module not found
+```bash
+pip install -r requirements.txt
 ```
 
-## 🌟 Use Cases
-
-- 🎥 **Content Creation** - TikTok, Reels, Shorts
-- 📚 **Educational Videos** - Tutorials, lessons
-- 🎬 **Marketing** - Product demos, ads
-- 📱 **Social Media** - Engaging posts
-- 🎙️ **Podcasts** - Audio to video conversion
-- 🌐 **Multi-language** - Global content
-
-## 🔄 Workflow
-
-```
-Script Text → Voiceover → Subtitles → Video Composition → Final Video
-     ↓           ↓           ↓              ↓               ↓
-  Input       TTS API    Whisper      MoviePy          MP4 Output
-```
-
-## 💻 Requirements
+## 📋 Requirements
 
 - Python 3.8+
 - moviepy
@@ -175,37 +159,11 @@ Script Text → Voiceover → Subtitles → Video Composition → Final Video
 - google-genai
 - requests
 
-## 🎯 Perfect For
+## 🎉 Ready!
 
-- ✅ Kaggle notebooks
-- ✅ Local development
-- ✅ Cloud environments
-- ✅ Automated pipelines
-- ✅ Batch processing
-
-## 📄 License
-
-Provided as-is for educational and commercial use.
-
-## 🤝 Contributing
-
-Each module is independent and can be modified separately. Feel free to:
-- Add new voices
-- Implement new effects
-- Add more aspect ratios
-- Enhance subtitle formatting
-- Optimize performance
-
-## 🆘 Support
-
-- 📖 Check [QUICKSTART.md](QUICKSTART.md) for common issues
-- 📘 Read [README_MODULES.md](README_MODULES.md) for detailed docs
-- ⚙️ Review [config.py](config.py) for settings
-
----
-
-**🎬 Start creating amazing videos now!**
-
+Start the bot:
 ```bash
-python main.py
+python telegram_bot.py
 ```
+
+Send `/start` to your bot on Telegram!
