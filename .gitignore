@@ -1,6 +1,7 @@
-# API Keys - NEVER commit these!
+# API Keys and Tokens - NEVER commit these!
 api_keys.txt
 last_api_key.txt
+telegram_token.txt
 
 # Generated files
 *.pyc

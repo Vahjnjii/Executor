@@ -149,7 +149,25 @@ MAX_RETRIES = 3
 # ============================================================================
 # TELEGRAM BOT SETTINGS
 # ============================================================================
-TELEGRAM_BOT_TOKEN = ""  # Set this in environment or here
+# Load Telegram bot token from file or use default
+def load_telegram_token():
+    """Load Telegram bot token from file or return configured token"""
+    token_file = os.path.join(BASE_DIR, "telegram_token.txt")
+
+    if os.path.exists(token_file):
+        try:
+            with open(token_file, 'r') as f:
+                token = f.read().strip()
+                if token:
+                    print(f"✅ Loaded Telegram bot token from telegram_token.txt")
+                    return token
+        except Exception as e:
+            print(f"⚠️  Error loading Telegram token: {e}")
+
+    # Default token (configured)
+    return "8308035860:AAG7YCkZq4bNiY3HCp8fPXNJ75FL0H3TOMo"
+
+TELEGRAM_BOT_TOKEN = load_telegram_token()
 TELEGRAM_API_URL = "https://api.telegram.org/bot"
 
 # Update interval for progress messages
