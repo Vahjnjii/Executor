@@ -46,14 +46,8 @@ jobs:
             }
         }
 
-        # ALL 3 NOTEBOOKS → distinct4exist
+        # 2 NOTEBOOKS → distinct4exist (removed new-20-1)
         NOTEBOOKS = [
-            {
-                "source_slug": "shreevathsbbhh/new-20-1", 
-                "notebook_name": "new-20-1", 
-                "dest_slug": "distinct4exist/new-20-1",
-                "dest_account": "distinct4exist"
-            },
             {
                 "source_slug": "shreevathsbbhh/war-2", 
                 "notebook_name": "war-2", 
@@ -163,14 +157,13 @@ jobs:
                     
                     push_dir = dest_dir
                 else:
-                    # Create new kernel - use source metadata but set correct id for destination
+                    # CREATE NEW KERNEL - set id to destination slug
                     source_metadata_file = source_dir / "kernel-metadata.json"
                     with open(source_metadata_file, 'r') as f:
                         metadata = json.load(f)
                     
-                    # Set id to destination slug (required for new kernels)
-                    # Remove id_no (only exists for existing kernels)
-                    metadata['id'] = nb['dest_slug']  # e.g., "distinct4exist/new-20-1"
+                    # FIX: Set id to dest_slug (REQUIRED for new kernels)
+                    metadata['id'] = nb['dest_slug']
                     metadata.pop('id_no', None)
                     metadata['slug'] = nb['notebook_name']
                     metadata['title'] = nb['notebook_name']
@@ -221,7 +214,7 @@ jobs:
             start = datetime.utcnow()
             log(f"EXECUTION STARTED: {start.isoformat()}", "🚀")
             log(f"Total notebooks: {len(NOTEBOOKS)}", "📊")
-            log(f"Destination: distinct4exist (all 3)", "🎯")
+            log(f"Destination: distinct4exist", "🎯")
             
             results = {}
             
