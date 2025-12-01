@@ -35,7 +35,6 @@ jobs:
         import threading
         import time
 
-        # --- CONFIGURATION ---
         SOURCE_ACCOUNT = {
             "username": "shreevathsbbhh",
             "key": "9f167cdee8a045c97ca6a2f82c6701f9"
@@ -52,6 +51,10 @@ jobs:
             }
         }
 
+        # UPDATED CONFIGURATION:
+        # 1. new-20-1 (shreevathsaz)
+        # 2. war-2    (distinct4exist)
+        # 3. war-1    (distinct4exist)
         NOTEBOOKS = [
             {
                 "source_slug": "shreevathsbbhh/new-20-1", 
@@ -73,7 +76,6 @@ jobs:
             }
         ]
 
-        # --- LOGIC ---
         log_lock = threading.Lock()
 
         def log(msg, symbol="ℹ️"):
@@ -91,9 +93,9 @@ jobs:
                 json.dump({"username": account["username"], "key": account["key"]}, f)
             
             kaggle_json.chmod(0o600)
-            log(f"Auth switched to: {account['username']}", "🔑")
+            log(f"Auth set: {account['username']}", "🔑")
 
-        def run_cmd(cmd, timeout=300):
+        def run_cmd(cmd, timeout=180):
             try:
                 result = subprocess.run(
                     cmd, shell=True, capture_output=True, 
@@ -101,117 +103,144 @@ jobs:
                 )
                 return result.returncode == 0, result.stdout, result.stderr
             except subprocess.TimeoutExpired:
-                return False, "", "Command timeout"
+                return False, "", "Command timeout after 180s"
             except Exception as e:
                 return False, "", str(e)
 
-        def check_kernel_status(slug):
-            # Helper to check why a push might fail
-            success, stdout, stderr = run_cmd(f"kaggle kernels status {slug}")
-            if success:
-                return stdout.strip()
-            return f"Unknown status ({stderr.strip()})"
-
         def execute_notebook(nb):
-            log(f"PROCESSING: {nb['notebook_name']} ({nb['source_slug']} -> {nb['dest_slug']})", "🚀")
+            log(f"START: {nb['notebook_name']} → {nb['dest_account']}", "🚀")
             
             temp_dir = Path(f"./temp_{nb['notebook_name']}")
             original_dir = os.getcwd()
             
             try:
-                # 1. Clean previous runs
+                # Clean temp directory
                 if temp_dir.exists():
                     shutil.rmtree(temp_dir)
                 temp_dir.mkdir()
                 
-                # 2. Pull from SOURCE
+                # STEP 1: Pull from source
                 setup_kaggle_auth(SOURCE_ACCOUNT)
+                time.sleep(0.5)  # Give filesystem time to update
                 
-                log(f"Pulling code...", "📥")
+                log(f"Pulling {nb['notebook_name']}...", "📥")
                 success, stdout, stderr = run_cmd(
                     f"kaggle kernels pull {nb['source_slug']} -p {temp_dir} -m"
                 )
                 
                 if not success:
-                    log(f"Pull Failed: {stderr[:200]}", "❌")
+                    log(f"PULL FAILED: {nb['notebook_name']}", "❌")
+                    log(f"Error: {stderr[:300]}", "")
+                    log(f"Output: {stdout[:300]}", "")
                     return False
                 
-                # 3. Modify Metadata to match DESTINATION
+                log(f"Pull OK: {nb['notebook_name']}", "✅")
+                
+                # STEP 2: Verify files exist
+                files = list(temp_dir.glob("*"))
+                log(f"Files pulled: {[f.name for f in files]}", "📄")
+                
                 metadata_file = temp_dir / "kernel-metadata.json"
+                
                 if not metadata_file.exists():
-                    log("Metadata file missing!", "❌")
+                    log(f"MISSING metadata: {nb['notebook_name']}", "❌")
                     return False
                 
+                # STEP 3: Update metadata - KEEP SAME NAME FOR VERSIONING
                 with open(metadata_file, 'r') as f:
                     metadata = json.load(f)
                 
-                metadata['id'] = nb['dest_slug']
+                log(f"Original metadata: {metadata.get('id', 'N/A')}", "📝")
+                
+                # Keep the same slug name - Kaggle will auto-version if notebook exists
                 new_slug = nb['dest_slug'].split('/')[-1]
-                metadata['slug'] = new_slug
+                
+                metadata.update({
+                    'id': nb['dest_slug'],
+                    'slug': new_slug,
+                    'title': nb['notebook_name']  # SAME NAME - triggers new version
+                })
                 
                 with open(metadata_file, 'w') as f:
                     json.dump(metadata, f, indent=2)
                 
-                log(f"Metadata updated: Target ID is {metadata['id']}", "📝")
+                log(f"Updated to: {metadata['id']} (title: {nb['notebook_name']})", "📝")
+                log(f"If notebook exists, new version will be created", "🔄")
                 
-                # 4. Push to DESTINATION
-                target_auth = DEST_ACCOUNTS.get(nb['dest_account'])
-                if not target_auth:
-                    log(f"Destination account {nb['dest_account']} not configured.", "❌")
+                # STEP 4: Switch to destination account
+                target_account_key = nb.get('dest_account')
+                if target_account_key not in DEST_ACCOUNTS:
+                    log(f"Unknown account: {target_account_key}", "❌")
                     return False
-
-                setup_kaggle_auth(target_auth)
                 
+                setup_kaggle_auth(DEST_ACCOUNTS[target_account_key])
+                time.sleep(0.5)  # Give filesystem time to update
+                
+                # STEP 5: Push to destination (creates new version if exists)
                 os.chdir(temp_dir)
-                log(f"Pushing new version...", "📤")
-                success, stdout, stderr = run_cmd("kaggle kernels push", timeout=300)
+                
+                log(f"Pushing {nb['notebook_name']}...", "📤")
+                success, stdout, stderr = run_cmd("kaggle kernels push", timeout=240)
+                
                 os.chdir(original_dir)
                 
-                if success:
-                    log(f"SUCCESS: Pushed to https://www.kaggle.com/code/{nb['dest_slug']}", "✅")
-                    return True
-                else:
-                    # IMPROVED ERROR HANDLING
-                    log(f"Push Failed. Checking status...", "❌")
-                    status_info = check_kernel_status(nb['dest_slug'])
-                    log(f"Current Kernel Status: {status_info}", "⚠️")
-                    
-                    if "409" in stderr or "Conflict" in stderr:
-                        log("👉 ERROR 409: The kernel is ALREADY RUNNING. You must stop it manually in Kaggle UI.", "🛑")
-                    else:
-                        log(f"Error Details: {stderr[:300]}", "⚠️")
-                    
+                if not success:
+                    log(f"PUSH FAILED: {nb['notebook_name']}", "❌")
+                    log(f"Error: {stderr[:300]}", "")
+                    log(f"Output: {stdout[:300]}", "")
                     return False
                 
+                log(f"Push OK: {nb['notebook_name']} (new version executed)", "✅")
+                log(f"URL: https://www.kaggle.com/code/{nb['dest_slug']}", "🔗")
+                
+                return True
+                
             except Exception as e:
-                log(f"Error: {e}", "❌")
+                log(f"EXCEPTION: {nb['notebook_name']}", "❌")
+                log(f"Error: {str(e)[:300]}", "")
+                import traceback
+                log(f"Trace: {traceback.format_exc()[:500]}", "")
                 return False
+                
             finally:
                 if os.getcwd() != original_dir:
                     os.chdir(original_dir)
                 if temp_dir.exists():
-                    shutil.rmtree(temp_dir, ignore_errors=True)
+                    try:
+                        shutil.rmtree(temp_dir)
+                    except Exception as cleanup_error:
+                        log(f"Cleanup warning: {str(cleanup_error)[:100]}", "⚠️")
 
-        def main():
+        def execute_all():
+            start = datetime.utcnow()
+            log(f"EXECUTION STARTED: {start.isoformat()}", "🚀")
+            log(f"Total notebooks: {len(NOTEBOOKS)}", "📊")
+            log(f"Mode: Same name versioning (new version if exists)", "🔄")
+            
             results = {}
+            
+            # Execute sequentially to avoid auth conflicts
             for nb in NOTEBOOKS:
-                print("\n")
+                log("═" * 70, "")
                 success = execute_notebook(nb)
                 results[nb['notebook_name']] = success
-                time.sleep(5) 
+                time.sleep(2)  # Wait between notebooks
             
-            print("\n" + "="*50)
-            print("SUMMARY")
-            print("="*50)
-            failed = False
-            for name, status in results.items():
-                icon = "✅" if status else "❌"
-                print(f"{icon} {name}")
-                if not status: failed = True
+            success_count = sum(results.values())
+            duration = (datetime.utcnow() - start).total_seconds()
             
-            if failed:
+            log("═" * 70, "")
+            log(f"COMPLETED: {success_count}/{len(results)} successful | {duration:.1f}s", "")
+            log("═" * 70, "")
+            
+            for nb_name, success in results.items():
+                status = "✅" if success else "❌"
+                log(f"{status} {nb_name}", "")
+            
+            # Exit with error if any failed
+            if success_count < len(results):
+                log(f"FAILURES DETECTED: {len(results) - success_count} notebooks failed", "❌")
                 sys.exit(1)
 
-        if __name__ == "__main__":
-            main()
+        execute_all()
         EOF
