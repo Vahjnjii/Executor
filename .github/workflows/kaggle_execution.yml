@@ -94,81 +94,102 @@ jobs:
             except Exception as e:
                 return False, "", str(e)
 
-        def kernel_exists(dest_slug, account):
-            """Check if kernel exists on destination account"""
-            setup_kaggle_auth(account)
-            time.sleep(0.3)
-            success, stdout, stderr = run_cmd(f"kaggle kernels status {dest_slug}")
-            exists = success and "404" not in stderr and "not found" not in stderr.lower()
-            log(f"Kernel exists check ({dest_slug}): {exists}", "🔍")
-            return exists
-
         def execute_notebook(nb):
             log(f"START: {nb['notebook_name']} → {nb['dest_account']}", "🚀")
             
-            temp_dir = Path(f"./temp_{nb['notebook_name']}")
+            source_dir = Path(f"./source_{nb['notebook_name']}")
+            dest_dir = Path(f"./dest_{nb['notebook_name']}")
             original_dir = os.getcwd()
             
             try:
-                if temp_dir.exists():
-                    shutil.rmtree(temp_dir)
-                temp_dir.mkdir()
+                # Clean directories
+                for d in [source_dir, dest_dir]:
+                    if d.exists():
+                        shutil.rmtree(d)
+                    d.mkdir()
                 
                 target_account_key = nb['dest_account']
                 dest_account = DEST_ACCOUNTS[target_account_key]
                 
-                # Check if kernel already exists on destination
-                exists = kernel_exists(nb['dest_slug'], dest_account)
-                
-                # Pull from source
-                setup_kaggle_auth(SOURCE_ACCOUNT)
-                time.sleep(0.3)
-                
-                log(f"Pulling {nb['notebook_name']}...", "📥")
-                success, stdout, stderr = run_cmd(f"kaggle kernels pull {nb['source_slug']} -p {temp_dir} -m")
-                
-                if not success:
-                    log(f"PULL FAILED: {stderr[:300]}", "❌")
-                    return False
-                
-                log(f"Pull OK", "✅")
-                
-                # Update metadata
-                metadata_file = temp_dir / "kernel-metadata.json"
-                if not metadata_file.exists():
-                    log(f"MISSING metadata", "❌")
-                    return False
-                
-                with open(metadata_file, 'r') as f:
-                    metadata = json.load(f)
-                
-                log(f"Original ID: {metadata.get('id', 'N/A')}", "📝")
-                
-                new_slug = nb['dest_slug'].split('/')[-1]
-                
-                if exists:
-                    # Kernel exists - set ID to push new version
-                    metadata['id'] = nb['dest_slug']
-                    metadata['slug'] = new_slug
-                    metadata['title'] = nb['notebook_name']
-                    log(f"Mode: NEW VERSION (kernel exists)", "🔄")
-                else:
-                    # Kernel doesn't exist - remove ID, let Kaggle create new
-                    metadata.pop('id', None)  # Remove id field
-                    metadata['slug'] = new_slug
-                    metadata['title'] = nb['notebook_name']
-                    log(f"Mode: CREATE NEW (kernel doesn't exist)", "🆕")
-                
-                with open(metadata_file, 'w') as f:
-                    json.dump(metadata, f, indent=2)
-                
-                log(f"Metadata updated: slug={new_slug}, title={nb['notebook_name']}", "📝")
-                
-                # Push to destination
+                # STEP 1: Pull from DESTINATION first (to get correct id_no and metadata)
                 setup_kaggle_auth(dest_account)
                 time.sleep(0.3)
                 
-                os.chdir(temp_dir)
+                log(f"Pulling destination metadata: {nb['dest_slug']}...", "📥")
+                success, stdout, stderr = run_cmd(f"kaggle kernels pull {nb['dest_slug']} -p {dest_dir} -m")
+                
+                dest_exists = success
+                if dest_exists:
+                    log(f"Destination kernel exists", "✅")
+                else:
+                    log(f"Destination kernel doesn't exist, will create new", "🆕")
+                
+                # STEP 2: Pull notebook code from SOURCE
+                setup_kaggle_auth(SOURCE_ACCOUNT)
+                time.sleep(0.3)
+                
+                log(f"Pulling source code: {nb['source_slug']}...", "📥")
+                success, stdout, stderr = run_cmd(f"kaggle kernels pull {nb['source_slug']} -p {source_dir} -m")
+                
+                if not success:
+                    log(f"SOURCE PULL FAILED: {stderr[:300]}", "❌")
+                    return False
+                
+                log(f"Source pull OK", "✅")
+                
+                # Find the notebook file in source
+                source_notebooks = list(source_dir.glob("*.ipynb"))
+                if not source_notebooks:
+                    log(f"No notebook found in source", "❌")
+                    return False
+                
+                source_notebook = source_notebooks[0]
+                log(f"Source notebook: {source_notebook.name}", "📄")
+                
+                # STEP 3: Prepare final metadata
+                if dest_exists:
+                    # Use destination's metadata (has correct id_no)
+                    dest_metadata_file = dest_dir / "kernel-metadata.json"
+                    with open(dest_metadata_file, 'r') as f:
+                        metadata = json.load(f)
+                    log(f"Using dest metadata: id={metadata.get('id')}, id_no={metadata.get('id_no')}", "📝")
+                    
+                    # Copy source notebook to dest directory with correct name
+                    dest_notebook_name = metadata.get('code_file', f"{nb['notebook_name']}.ipynb")
+                    shutil.copy(source_notebook, dest_dir / dest_notebook_name)
+                    
+                    # Update code_file reference if needed
+                    metadata['code_file'] = dest_notebook_name
+                    
+                    with open(dest_metadata_file, 'w') as f:
+                        json.dump(metadata, f, indent=2)
+                    
+                    push_dir = dest_dir
+                else:
+                    # Create new kernel - use source metadata without id_no
+                    source_metadata_file = source_dir / "kernel-metadata.json"
+                    with open(source_metadata_file, 'r') as f:
+                        metadata = json.load(f)
+                    
+                    # Remove id and id_no for new kernel
+                    metadata.pop('id', None)
+                    metadata.pop('id_no', None)
+                    metadata['slug'] = nb['notebook_name']
+                    metadata['title'] = nb['notebook_name']
+                    metadata['code_file'] = source_notebook.name
+                    
+                    with open(source_metadata_file, 'w') as f:
+                        json.dump(metadata, f, indent=2)
+                    
+                    log(f"New kernel metadata: slug={metadata['slug']}", "📝")
+                    push_dir = source_dir
+                
+                # STEP 4: Push to destination
+                setup_kaggle_auth(dest_account)
+                time.sleep(0.3)
+                
+                os.chdir(push_dir)
+                log(f"Directory contents: {[f.name for f in Path('.').glob('*')]}", "📂")
                 
                 log(f"Pushing...", "📤")
                 success, stdout, stderr = run_cmd("kaggle kernels push", timeout=240)
@@ -177,8 +198,8 @@ jobs:
                 
                 if not success:
                     log(f"PUSH FAILED", "❌")
-                    log(f"Error: {stderr[:400]}", "")
-                    log(f"Output: {stdout[:400]}", "")
+                    log(f"Stderr: {stderr}", "")
+                    log(f"Stdout: {stdout}", "")
                     return False
                 
                 log(f"Push OK: {nb['notebook_name']}", "✅")
@@ -194,8 +215,9 @@ jobs:
             finally:
                 if os.getcwd() != original_dir:
                     os.chdir(original_dir)
-                if temp_dir.exists():
-                    shutil.rmtree(temp_dir, ignore_errors=True)
+                for d in [source_dir, dest_dir]:
+                    if d.exists():
+                        shutil.rmtree(d, ignore_errors=True)
 
         def execute_all():
             start = datetime.utcnow()
