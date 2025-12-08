@@ -46,18 +46,18 @@ jobs:
             }
         }
 
-        # 2 NOTEBOOKS → distinct4exist (removed new-20-1)
+        # 2 NOTEBOOKS → distinct4exist (Updated to War 4 & 5)
         NOTEBOOKS = [
             {
-                "source_slug": "shreevathsbbhh/war-2", 
-                "notebook_name": "war-2", 
-                "dest_slug": "distinct4exist/war-2",
+                "source_slug": "shreevathsbbhh/war-4", 
+                "notebook_name": "war-4", 
+                "dest_slug": "distinct4exist/war-4",
                 "dest_account": "distinct4exist"
             },
             {
-                "source_slug": "shreevathsbbhh/war-1",   
-                "notebook_name": "war-1",   
-                "dest_slug": "distinct4exist/war-1",
+                "source_slug": "shreevathsbbhh/war-5",   
+                "notebook_name": "war-5",   
+                "dest_slug": "distinct4exist/war-5",
                 "dest_account": "distinct4exist"
             }
         ]
