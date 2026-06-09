@@ -46,7 +46,7 @@ jobs:
             },
             "vathsamajibail": {
                 "username": "vathsamajibail",
-                "key": "cbda90918a7df5e172464036b5fc03be"
+                "key": "ab872becbd728490a011a8225950cd27"  # Updated API Key
             }
         }
 
@@ -81,14 +81,22 @@ jobs:
             kaggle_dir = Path.home() / ".kaggle"
             kaggle_dir.mkdir(exist_ok=True)
             kaggle_json = kaggle_dir / "kaggle.json"
+            
+            # Write to kaggle.json
             with open(kaggle_json, 'w') as f:
                 json.dump({"username": account["username"], "key": account["key"]}, f)
             kaggle_json.chmod(0o600)
+            
+            # FIX: Explicitly set environment variables to prevent Kaggle CLI credential caching
+            os.environ["KAGGLE_USERNAME"] = account["username"]
+            os.environ["KAGGLE_KEY"] = account["key"]
+            
             log(f"Auth set: {account['username']}", "🔑")
 
         def run_cmd(cmd, timeout=180):
             try:
-                result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout)
+                # pass the explicitly updated environment to the subprocess
+                result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout, env=os.environ)
                 return result.returncode == 0, result.stdout, result.stderr
             except subprocess.TimeoutExpired:
                 return False, "", "Timeout"
@@ -232,7 +240,7 @@ jobs:
                 success = execute_notebook(nb)
                 results[nb['notebook_name']] = success
                 
-                # CHANGED: Increased wait time to 60 seconds
+                # Wait 60 seconds before next action
                 log("Waiting 60 seconds before next action...", "⏳")
                 time.sleep(60)
             
