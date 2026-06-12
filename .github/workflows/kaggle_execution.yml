@@ -34,19 +34,19 @@ jobs:
         import shutil
         import time
 
-        SOURCE_ACCOUNT = {
-            "username": "shreevathsbbhh",
-            "key": "83a92caa96ed51b5d5a9a730100c57aa"
-        }
-
-        DEST_ACCOUNTS = {
+        # Consolidated accounts dictionary
+        ACCOUNTS = {
+            "shreevathsbbhh": {
+                "username": "shreevathsbbhh",
+                "key": "83a92caa96ed51b5d5a9a730100c57aa"
+            },
             "distinct4exist": {
                 "username": "distinct4exist",
                 "key": "c2767798395ca8c007e931d6f9d42752"
             },
             "vathsamajibail": {
                 "username": "vathsamajibail",
-                "key": "ab872becbd728490a011a8225950cd27"  # Updated API Key
+                "key": "ab872becbd728490a011a8225950cd27"
             }
         }
 
@@ -54,20 +54,23 @@ jobs:
         NOTEBOOKS = [
             {
                 "source_slug": "shreevathsbbhh/war-6", 
+                "source_account": "shreevathsbbhh",
                 "notebook_name": "war-6", 
                 "dest_slug": "distinct4exist/war-6",
                 "dest_account": "distinct4exist"
             },
             {
-                "source_slug": "shreevathsbbhh/war-7",   
+                "source_slug": "shreevathsbbhh/war-7", 
+                "source_account": "shreevathsbbhh",  
                 "notebook_name": "war-7",   
                 "dest_slug": "distinct4exist/war-7",
                 "dest_account": "distinct4exist"
             },
             {
-                "source_slug": "shreevathsbbhh/bingo",   
-                "notebook_name": "bingo",   
-                "dest_slug": "vathsamajibail/bingo",
+                "source_slug": "vathsamajibail/bingo-1-3",
+                "source_account": "vathsamajibail",
+                "notebook_name": "bingo-1-3",   
+                "dest_slug": "vathsamajibail/bingo-1-3",
                 "dest_account": "vathsamajibail"
             }
         ]
@@ -87,7 +90,7 @@ jobs:
                 json.dump({"username": account["username"], "key": account["key"]}, f)
             kaggle_json.chmod(0o600)
             
-            # FIX: Explicitly set environment variables to prevent Kaggle CLI credential caching
+            # Explicitly set environment variables to prevent Kaggle CLI credential caching
             os.environ["KAGGLE_USERNAME"] = account["username"]
             os.environ["KAGGLE_KEY"] = account["key"]
             
@@ -104,7 +107,7 @@ jobs:
                 return False, "", str(e)
 
         def execute_notebook(nb):
-            log(f"START: {nb['notebook_name']} → {nb['dest_account']}", "🚀")
+            log(f"START: {nb['notebook_name']} ({nb['source_account']} → {nb['dest_account']})", "🚀")
             
             source_dir = Path(f"./source_{nb['notebook_name']}")
             dest_dir = Path(f"./dest_{nb['notebook_name']}")
@@ -117,8 +120,8 @@ jobs:
                         shutil.rmtree(d)
                     d.mkdir()
                 
-                target_account_key = nb['dest_account']
-                dest_account = DEST_ACCOUNTS[target_account_key]
+                source_account = ACCOUNTS[nb['source_account']]
+                dest_account = ACCOUNTS[nb['dest_account']]
                 
                 # STEP 1: Pull from DESTINATION first (to get correct id_no and metadata)
                 setup_kaggle_auth(dest_account)
@@ -134,7 +137,7 @@ jobs:
                     log(f"Destination kernel doesn't exist, will create new", "🆕")
                 
                 # STEP 2: Pull notebook code from SOURCE
-                setup_kaggle_auth(SOURCE_ACCOUNT)
+                setup_kaggle_auth(source_account)
                 time.sleep(0.3)
                 
                 log(f"Pulling source code: {nb['source_slug']}...", "📥")
@@ -180,7 +183,7 @@ jobs:
                     with open(source_metadata_file, 'r') as f:
                         metadata = json.load(f)
                     
-                    # FIX: Set id to dest_slug (REQUIRED for new kernels)
+                    # Set id to dest_slug (REQUIRED for new kernels)
                     metadata['id'] = nb['dest_slug']
                     metadata.pop('id_no', None)
                     metadata['slug'] = nb['notebook_name']
