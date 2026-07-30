@@ -86,6 +86,13 @@ jobs:
                 "notebook_name": "bingo3",
                 "dest_slug": "vathsamajibail/bingo3",
                 "dest_account": "vathsamajibail"
+            },
+            {
+                "source_slug": "vathsamajibail/ecoms",
+                "source_account": "vathsamajibail",
+                "notebook_name": "ecoms",
+                "dest_slug": "vathsamajibail/ecoms",
+                "dest_account": "vathsamajibail"
             }
         ]
 
