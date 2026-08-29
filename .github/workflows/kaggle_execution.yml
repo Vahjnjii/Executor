@@ -67,6 +67,13 @@ jobs:
                 "dest_account": "distinct4exist"
             },
             {
+                "source_slug": "distinct4exist/war-8",
+                "source_account": "distinct4exist",
+                "notebook_name": "war-8",
+                "dest_slug": "distinct4exist/war-8",
+                "dest_account": "distinct4exist"
+            },
+            {
                 "source_slug": "vathsamajibail/bingo1",
                 "source_account": "vathsamajibail",
                 "notebook_name": "bingo1",
