@@ -95,10 +95,10 @@ jobs:
                 "dest_account": "vathsamajibail"
             },
             {
-                "source_slug": "vathsamajibail/ecoms2-1",
+                "source_slug": "vathsamajibail/ecoms2-3",
                 "source_account": "vathsamajibail",
-                "notebook_name": "ecoms2-1",
-                "dest_slug": "vathsamajibail/ecoms2-1",
+                "notebook_name": "ecoms2-3",
+                "dest_slug": "vathsamajibail/ecoms2-3",
                 "dest_account": "vathsamajibail"
             }
         ]
