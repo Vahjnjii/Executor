@@ -78,10 +78,10 @@ jobs:
                 "dest_account": "distinct4exist"
             },
             {
-                "source_slug": "vathsamajibail/bingo1",
+                "source_slug": "vathsamajibail/bingo-a",
                 "source_account": "vathsamajibail",
-                "notebook_name": "bingo1",
-                "dest_slug": "vathsamajibail/bingo1",
+                "notebook_name": "bingo-a",
+                "dest_slug": "vathsamajibail/bingo-a",
                 "dest_account": "vathsamajibail"
             },
             {
