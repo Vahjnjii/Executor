@@ -47,6 +47,10 @@ jobs:
             "vathsamajibail": {
                 "username": "vathsamajibail",
                 "key": "ab872becbd728490a011a8225950cd27"
+            },
+            "vathsamm": {
+                "username": "vathsamm",
+                "key": "c2b7a4e8baec8cd4945a3c8665b36237"
             }
         }
 
@@ -100,6 +104,13 @@ jobs:
                 "notebook_name": "ecoms3-1",
                 "dest_slug": "vathsamajibail/ecoms3-1",
                 "dest_account": "vathsamajibail"
+            },
+            {
+                "source_slug": "vathsamm/long-video-1-0",
+                "source_account": "vathsamm",
+                "notebook_name": "long-video-1-0",
+                "dest_slug": "vathsamm/long-video-1-0",
+                "dest_account": "vathsamm"
             }
         ]
 
