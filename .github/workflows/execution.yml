@@ -77,17 +77,17 @@ jobs:
                 "dest_account": "vathsamajibail"
             },
             {
-                "source_slug": "vathsamajibail/bingo2",
+                "source_slug": "vathsamajibail/bingo_b",
                 "source_account": "vathsamajibail",
-                "notebook_name": "bingo2",
-                "dest_slug": "vathsamajibail/bingo2",
+                "notebook_name": "bingo_b",
+                "dest_slug": "vathsamajibail/bingo_b",
                 "dest_account": "vathsamajibail"
             },
             {
-                "source_slug": "vathsamajibail/bingo3",
+                "source_slug": "vathsamajibail/bingo_c",
                 "source_account": "vathsamajibail",
-                "notebook_name": "bingo3",
-                "dest_slug": "vathsamajibail/bingo3",
+                "notebook_name": "bingo_c",
+                "dest_slug": "vathsamajibail/bingo_c",
                 "dest_account": "vathsamajibail"
             }
         ]
