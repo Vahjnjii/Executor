@@ -1,0 +1,219 @@
+name: Kaggle Notebook Executor
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [cron-trigger]
+
+jobs:
+  execute-notebooks:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        pip install kaggle
+    
+    - name: Execute notebooks
+      run: |
+        python << 'PYEOF'
+        import os
+        import subprocess
+        import json
+        import sys
+        from datetime import datetime
+        from pathlib import Path
+        import shutil
+        import time
+
+        # Accounts dictionary
+        ACCOUNTS = {
+            "distinct4exist": {
+                "username": "distinct4exist",
+                "key": "c2767798395ca8c007e931d6f9d42752"
+            },
+            "vathsamajibail": {
+                "username": "vathsamajibail",
+                "key": "267940c6b9551d8f9b7a3bc82390cbfb"
+            }
+        }
+
+        # NOTEBOOKS
+        NOTEBOOKS = [
+            {
+                "source_slug": "distinct4exist/war-6",
+                "source_account": "distinct4exist",
+                "notebook_name": "war-6",
+                "dest_slug": "distinct4exist/war-6",
+                "dest_account": "distinct4exist"
+            },
+            {
+                "source_slug": "distinct4exist/war-7",
+                "source_account": "distinct4exist",
+                "notebook_name": "war-7",
+                "dest_slug": "distinct4exist/war-7",
+                "dest_account": "distinct4exist"
+            },
+            {
+                "source_slug": "distinct4exist/war-9",
+                "source_account": "distinct4exist",
+                "notebook_name": "war-9",
+                "dest_slug": "distinct4exist/war-9",
+                "dest_account": "distinct4exist"
+            },
+            {
+                "source_slug": "vathsamajibail/bingo-a",
+                "source_account": "vathsamajibail",
+                "notebook_name": "bingo-a",
+                "dest_slug": "vathsamajibail/bingo-a",
+                "dest_account": "vathsamajibail"
+            },
+            {
+                "source_slug": "vathsamajibail/bingo_b",
+                "source_account": "vathsamajibail",
+                "notebook_name": "bingo_b",
+                "dest_slug": "vathsamajibail/bingo_b",
+                "dest_account": "vathsamajibail"
+            },
+            {
+                "source_slug": "vathsamajibail/bingo_c",
+                "source_account": "vathsamajibail",
+                "notebook_name": "bingo_c",
+                "dest_slug": "vathsamajibail/bingo_c",
+                "dest_account": "vathsamajibail"
+            }
+        ]
+
+        def log(msg, symbol="ℹ️"):
+            timestamp = datetime.utcnow().strftime('%H:%M:%S')
+            print(f"[{timestamp}] {symbol} {msg}")
+            sys.stdout.flush()
+
+        def setup_kaggle_auth(account):
+            kaggle_dir = Path.home() / ".kaggle"
+            kaggle_dir.mkdir(exist_ok=True)
+            kaggle_json = kaggle_dir / "kaggle.json"
+            
+            with open(kaggle_json, 'w') as f:
+                json.dump({"username": account["username"], "key": account["key"]}, f)
+            kaggle_json.chmod(0o600)
+            
+            os.environ["KAGGLE_USERNAME"] = account["username"]
+            os.environ["KAGGLE_KEY"] = account["key"]
+            
+            log(f"Auth set: {account['username']}", "🔑")
+
+        def run_cmd(cmd, timeout=180):
+            try:
+                result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout, env=os.environ)
+                return result.returncode == 0, result.stdout, result.stderr
+            except subprocess.TimeoutExpired:
+                return False, "", "Timeout"
+            except Exception as e:
+                return False, "", str(e)
+
+        def execute_notebook(nb):
+            log(f"START: {nb['notebook_name']} ({nb['source_account']} → {nb['dest_account']})", "🚀")
+            
+            work_dir = Path(f"./work_{nb['notebook_name']}")
+            original_dir = os.getcwd()
+            
+            try:
+                if work_dir.exists():
+                    shutil.rmtree(work_dir)
+                work_dir.mkdir()
+                
+                account = ACCOUNTS[nb['dest_account']]
+                setup_kaggle_auth(account)
+                time.sleep(0.3)
+                
+                log(f"Pulling notebook: {nb['source_slug']}...", "📥")
+                success, stdout, stderr = run_cmd(f"kaggle kernels pull {nb['source_slug']} -p {work_dir} -m")
+                
+                if not success:
+                    err_msg = (stderr or stdout).strip()[:300]
+                    log(f"PULL FAILED: {err_msg}", "❌")
+                    return False
+                
+                log(f"Pull OK", "✅")
+                
+                notebooks = list(work_dir.glob("*.ipynb"))
+                if not notebooks:
+                    log(f"No notebook found in pulled files", "❌")
+                    return False
+                
+                notebook_file = notebooks[0]
+                metadata_file = work_dir / "kernel-metadata.json"
+                with open(metadata_file, 'r') as f:
+                    metadata = json.load(f)
+                
+                log(f"Metadata: id={metadata.get('id')}, id_no={metadata.get('id_no')}, file={notebook_file.name}", "📝")
+                
+                os.chdir(work_dir)
+                log(f"Directory contents: {[f.name for f in Path('.').glob('*')]}", "📂")
+                
+                log(f"Pushing...", "📤")
+                success, stdout, stderr = run_cmd("kaggle kernels push", timeout=240)
+                
+                os.chdir(original_dir)
+                
+                if not success:
+                    log(f"PUSH FAILED", "❌")
+                    log(f"Stderr: {stderr}", "")
+                    log(f"Stdout: {stdout}", "")
+                    return False
+                
+                log(f"Push OK: {nb['notebook_name']}", "✅")
+                log(f"URL: https://www.kaggle.com/code/{nb['dest_slug']}", "🔗")
+                return True
+                
+            except Exception as e:
+                log(f"EXCEPTION: {str(e)}", "❌")
+                import traceback
+                traceback.print_exc()
+                return False
+                
+            finally:
+                if os.getcwd() != original_dir:
+                    os.chdir(original_dir)
+                if work_dir.exists():
+                    shutil.rmtree(work_dir, ignore_errors=True)
+
+        def execute_all():
+            start = datetime.utcnow()
+            log(f"EXECUTION STARTED: {start.isoformat()}", "🚀")
+            log(f"Total notebooks: {len(NOTEBOOKS)}", "📊")
+            
+            results = {}
+            
+            for idx, nb in enumerate(NOTEBOOKS):
+                log("═" * 60, "")
+                success = execute_notebook(nb)
+                results[nb['notebook_name']] = success
+                
+                if idx < len(NOTEBOOKS) - 1:
+                    log("Waiting 60 seconds before next action...", "⏳")
+                    time.sleep(60)
+            
+            success_count = sum(results.values())
+            duration = (datetime.utcnow() - start).total_seconds()
+            
+            log("═" * 60, "")
+            log(f"COMPLETED: {success_count}/{len(results)} | {duration:.1f}s", "🏁")
+            
+            for nb_name, success in results.items():
+                log(f"{'✅' if success else '❌'} {nb_name}", "")
+            
+            if success_count < len(results):
+                sys.exit(1)
+
+        execute_all()
+        PYEOF
